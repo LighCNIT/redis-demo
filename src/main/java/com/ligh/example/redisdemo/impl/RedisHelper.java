@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @ClassName RedisHelper
@@ -80,57 +81,87 @@ public class RedisHelper implements IRedisHelper {
 
     @Override
     public boolean setIfKeyAbSent(String key, Object value) {
-        return false;
+        Boolean result = redisTemplate.execute((redisConnection ->
+                redisConnection.setNX(serializeString(key),serializeObject(value))
+                ),true);
+        return ValueUtil.getValue(result);
     }
 
     @Override
     public boolean setIfValueAbSent(String key, Object value, long expire) {
-        return false;
+        Boolean result = redisTemplate.opsForValue().setIfAbsent(key,value,expire, TimeUnit.SECONDS);
+        return ValueUtil.getValue(result);
     }
 
     @Override
     public Object get(String key) {
-        return null;
+        try {
+            return redisTemplate.opsForValue().get(key);
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @Override
     public <T> T get(String key, Class<T> clazz) {
-        return null;
+        try {
+            Object object = redisTemplate.opsForValue().get(key);
+            return ValueUtil.parse(object,clazz);
+        }catch (Exception e){
+            return null;
+        }
     }
 
     @Override
     public <T> List<T> getList(String key, Class<T> clazz) {
+        Object object = get(key);
+        if (object instanceof List){
+            List<Object> list = (List<Object>) object;
+            return ValueUtil.parseList(list, clazz);
+        }
         return null;
     }
 
     @Override
     public String getString(String key) {
-        return null;
+        Object v = get(key);
+        return ValueUtil.parseString(v);
     }
 
     @Override
     public int getInt(String key) {
-        return 0;
+        Object v = get(key);
+        return ValueUtil.parseInt(v);
     }
 
     @Override
     public long getLong(String key) {
-        return 0;
+        Object v = get(key);
+        return ValueUtil.parseLong(v);
     }
 
     @Override
     public double getDouble(String key) {
-        return 0;
+        Object v = get(key);
+        return ValueUtil.parseDouble(v);
     }
 
     @Override
     public boolean getBoolean(String key) {
-        return false;
+        Object v = get(key);
+        return ValueUtil.parseBoolean(v);
     }
 
     @Override
     public Object getSet(String key, Object value) {
-        return null;
+        try {
+            Object result = redisTemplate.opsForValue().getAndSet(key, value);
+            return result;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @Override
