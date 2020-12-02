@@ -1,0 +1,12 @@
+# ≈‰÷√redis
+spring:
+  redis:
+    host: 139.186.68.221
+    post: 6379
+    password: root
+    jedis:
+        pool:
+          max-active: 100
+          max-idle: 10
+          max-wait: 100000
+    timeout: 5000
