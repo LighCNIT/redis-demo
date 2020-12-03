@@ -3,6 +3,7 @@ package com.ligh.example.redisdemo.impl;
 import com.ligh.example.redisdemo.IRedisHelper;
 import com.ligh.example.redisdemo.IZSetTuple;
 import com.ligh.example.redisdemo.config.SpringContextUtils;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.RedisStringCommands;
 import org.springframework.data.redis.core.HashOperations;
@@ -166,117 +167,205 @@ public class RedisHelper implements IRedisHelper {
 
     @Override
     public <T> T getSet(String key, Object value, Class<T> clazz) {
-        return null;
+        try {
+            Object object = redisTemplate.opsForValue().getAndSet(key,value);
+            return ValueUtil.parse(object,clazz);
+        }catch (Exception e){
+            return null;
+        }
     }
 
     @Override
     public boolean expire(String key, long expire) {
-        return false;
+        Boolean result = redisTemplate.expire(key,expire,TimeUnit.SECONDS);
+        return ValueUtil.getValue(result);
     }
 
     @Override
     public boolean expireAt(String key, long expireTimestamp) {
-        return false;
+        Boolean result = redisTemplate.execute(redisConnection ->
+                redisConnection.pExpire(serializeString(key), expireTimestamp), true);
+        return ValueUtil.getValue(result);
     }
 
     @Override
     public boolean persist(String key) {
-        return false;
+        Boolean result = redisTemplate.persist(key);
+        return ValueUtil.getValue(result);
     }
 
     @Override
     public int listLen(String key) {
-        return 0;
+        Long len = redisTemplate.opsForList().size(key);
+        return len==null?0:len.intValue();
     }
 
     @Override
     public <T> T lindex(String key, int index, Class<T> clazz) {
-        return null;
+        try {
+            Object result = redisTemplate.opsForList().index(key, index);
+            return ValueUtil.parse(result, clazz);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @Override
     public <T> List<T> lrange(String key, int start, int stop, Class<T> clazz) {
+        try {
+            List<Object> result = redisTemplate.opsForList().range(key,start,stop);
+            return ValueUtil.parseList(result,clazz);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
         return null;
     }
 
     @Override
     public long lpush(String key, Object... objects) {
-        return 0;
+        Long result = redisTemplate.opsForList().leftPushAll(key,objects);
+        return ValueUtil.getValue(result);
     }
 
     @Override
     public long rpush(String key, Object... objects) {
-        return 0;
+        Long result = redisTemplate.opsForList().rightPushAll(key,objects);
+        return ValueUtil.getValue(result);
     }
 
     @Override
     public Object lpop(String key) {
-        return null;
+        try {
+            return redisTemplate.opsForList().leftPop(key);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @Override
     public Object rpop(String key) {
-        return null;
+        try {
+            return redisTemplate.opsForList().rightPop(key);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @Override
     public <T> T lpop(String key, Class<T> clazz) {
-        return null;
+        try {
+             Object result = redisTemplate.opsForList().leftPop(key);
+             return ValueUtil.parse(result,clazz);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @Override
     public <T> T rpop(String key, Class<T> clazz) {
-        return null;
+        try {
+            Object result = redisTemplate.opsForList().rightPop(key);
+            return ValueUtil.parse(result,clazz);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @Override
     public void ltrim(String key, int start, int stop) {
-
+        redisTemplate.opsForList().trim(key,start,stop);
     }
 
     @Override
     public boolean hset(String key, String field, Object value) {
-        return false;
+        Boolean result = redisTemplate.execute(redisConnection -> redisConnection.hSet(serializeString(key)
+                , serializeString(field), serializeObject(value)), true);
+        return ValueUtil.getValue(result);
     }
 
     @Override
     public boolean hsetnx(String key, String field, Object value) {
-        return false;
+        Boolean result = redisTemplate.execute((connection) ->
+                        connection.hSetNX(serializeString(key), serializeString(field), serializeObject(value))
+                , true);
+        return ValueUtil.getValue(result);
     }
 
     @Override
     public Object hget(String key, String field) {
-        return null;
+        try {
+            return opsForHash.get(key,field);
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @Override
     public <T> T hget(String key, String field, Class<T> clazz) {
-        return null;
+        try {
+            Object result =  opsForHash.get(key,field);
+            return ValueUtil.parse(result,clazz);
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @Override
     public boolean hmset(String key, Map<String, Object> map) {
-        return false;
+        opsForHash.putAll(key,map);
+        return true;
     }
 
     @Override
     public List<Object> hmget(String key, List<String> fieldList) {
-        return null;
+        if (fieldList == null || fieldList.size()==0){
+            return null;
+        }
+        try {
+            return opsForHash.multiGet(key,fieldList);
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @Override
     public <T> List<T> hmget(String key, List<String> fieldList, Class<T> clazz) {
-        return null;
+        try {
+            List<Object> valueList = opsForHash.multiGet(key, fieldList);
+            return ValueUtil.parseList(valueList, clazz);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @Override
     public Map<String, Object> hgetall(String key) {
-        return null;
+       try {
+           return opsForHash.entries(key);
+       }catch (Exception e){
+           e.printStackTrace();
+           return null;
+       }
     }
 
     @Override
     public <T> Map<String, T> hmgetall(String key, Class<T> clazz) {
-        return null;
+        try {
+            Map<String, Object> map = opsForHash.entries(key);
+            return ValueUtil.parseMap(map, clazz);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @Override

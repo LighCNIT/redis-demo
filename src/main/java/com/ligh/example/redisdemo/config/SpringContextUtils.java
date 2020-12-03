@@ -4,6 +4,7 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.stereotype.Component;
 
 /**
  * @ClassName SpringContextUtils
@@ -11,6 +12,7 @@ import org.springframework.context.ApplicationContextAware;
  * @Author 李光华
  * @Date 2020/12/2 14:56
  **/
+@Component
 public class SpringContextUtils  implements ApplicationContextAware {
 
     private static ApplicationContext applicationContext;
