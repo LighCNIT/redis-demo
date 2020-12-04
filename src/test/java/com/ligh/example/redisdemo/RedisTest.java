@@ -5,6 +5,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.annotation.Resource;
@@ -25,6 +26,9 @@ public class RedisTest {
     @Autowired
     private IRedisHelper redisHelper;
 
+    @Autowired
+    private ILock redisLock;
+
     @Test
     public void testSet(){
         redisTemplate.opsForValue().set("bb","root");
@@ -43,5 +47,23 @@ public class RedisTest {
         redisHelper.hset("dd","xie","开心");
         System.out.println(redisHelper.hget("dd","xie"));
     }
+
+    @Test
+    public void testLock(){
+        boolean lock = redisLock.tryLock("aa","aa",0);
+        if (lock){
+            System.out.println("执行任务");
+        }else {
+            System.out.println("没有抢到锁");
+        }
+        redisLock.unLock("aa","aa");
+        boolean lock1 = redisLock.tryLock("aa","aa",0);
+        if (lock1){
+            System.out.println("获取到锁了");
+        }else {
+            System.out.println("没有获取到锁");
+        }
+    }
+
 
 }
